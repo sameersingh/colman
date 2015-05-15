@@ -58,8 +58,21 @@
       <artifactId>scala-library</artifactId>
       <version>${scala.version}</version>
     </dependency>
+      <!-- Stanford NLP -->
+      <dependency>
+          <groupId>edu.stanford.nlp</groupId>
+          <artifactId>stanford-corenlp</artifactId>
+          <version>3.4</version>
+      </dependency>
+      <dependency>
+          <groupId>edu.stanford.nlp</groupId>
+          <artifactId>stanford-corenlp</artifactId>
+          <version>3.4</version>
+          <classifier>models</classifier>
+      </dependency>
 
-    <!-- Test -->
+
+      <!-- Test -->
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
