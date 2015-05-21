@@ -104,6 +104,31 @@
             </configuration>
           </execution>
         </executions>
+        <configuration>
+          <launchers>
+              <launcher>
+                  <id>subjects</id>
+                  <mainClass>colman.Subjects</mainClass>
+                  <jvmArgs>
+                      <jvmArg>-Xmx48g</jvmArg>
+                  </jvmArgs>
+              </launcher>
+              <launcher>
+                  <id>obj-verbs</id>
+                  <mainClass>colman.ObjectVerbs</mainClass>
+                  <jvmArgs>
+                      <jvmArg>-Xmx48g</jvmArg>
+                  </jvmArgs>
+              </launcher>
+              <launcher>
+                  <id>subj-verbs</id>
+                  <mainClass>colman.SubjectVerbs</mainClass>
+                  <jvmArgs>
+                      <jvmArg>-Xmx48g</jvmArg>
+                  </jvmArgs>
+              </launcher>
+          </launchers>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
