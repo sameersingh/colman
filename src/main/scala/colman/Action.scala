@@ -75,6 +75,23 @@ trait Aggregate extends Action {
   def output: Iterator[Seq[String]]
 }
 
+class Writer(fname: String, gzip: Boolean) extends Aggregate {
+  val writer = FileUtil.writer(fname, gzip)
+  var idx = 0l
+  override def apply(fields: Seq[String]): Unit = {
+    writer.println(fields.mkString("\t"))
+    idx += 1l
+    if(idx % 10000l == 0) print(".")
+    if(idx % 1000000l == 0) println(": " + idx)
+  }
+
+  override def output: Iterator[Seq[String]] = {
+    writer.flush()
+    writer.close()
+    Iterator.empty
+  }
+}
+
 class Group(key: Int) extends Aggregate {
 
   val map = new mutable.LinkedHashMap[String, ArrayBuffer[Seq[String]]]
