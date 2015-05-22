@@ -88,13 +88,15 @@ object Common {
   }
 }
 
-object Urls{
+object Urls {
+  val scalingFactor = 2239596.0/5030876.0
+
   def main(args: Array[String]): Unit = {
     VerbTriplets.run(Actions(Cut(0, 4),
-      SumLast(), Sort(1, true),
-      Transform(1, _.toDouble.toInt.toString),
       new Filter(fs => UrlPolarity(fs(0)).isDefined),
-      Transform(0, s => s + "\t" + UrlPolarity(s).get)
+      Transform(0, s => UrlPolarity(s).get),
+      SumLast() //, Sort(1, true),
+      //Transform(1, _.toDouble.toInt.toString)
     ),
       Seq(VerbTriplets.triplets),
       VerbTriplets.urls)
@@ -110,13 +112,13 @@ object ObjectVerbs {
       Transform(0, s => UrlPolarity(s).get),
       Cut(3, 2, 0, 4), // obj, verb, left/right, count
       Transform.all(fs => {
-        val count = fs(3).toInt
+        val count = fs(3).toDouble
         val left = (fs(2) == "left")
         assert(left || fs(2) == "right", fs.mkString("\t"))
-        val countl = if(left) count else 0
+        val countl = if(left) count*Urls.scalingFactor else 0
         val countr = if(left) 0 else count
-        val diff = if(left) count else -count
-        val total = count
+        val diff = countl-countr
+        val total = countl + countr
         Some(Seq(fs(0), fs(1), countl.toString, countr.toString, diff.toString, total.toString))
       }), // object verb lcount rcount lcount-rcount total
       SumLast(4), new Filter(fs => fs(5).toDouble > 4.0),
@@ -139,13 +141,13 @@ object SubjectVerbs {
       Transform(0, s => UrlPolarity(s).get),
       Cut(1, 2, 0, 4), // subj verb left/right count
       Transform.all(fs => {
-        val count = fs(3).toInt
+        val count = fs(3).toDouble
         val left = (fs(2) == "left")
         assert(left || fs(2) == "right", fs.mkString("\t"))
-        val countl = if(left) count else 0
+        val countl = if(left) count*Urls.scalingFactor else 0
         val countr = if(left) 0 else count
-        val diff = if(left) count else -count
-        val total = count
+        val diff = countl-countr
+        val total = countl + countr
         Some(Seq(fs(0), fs(1), countl.toString, countr.toString, diff.toString, total.toString))
       }), // subj verb lcount rcount lcount-rcount total
       SumLast(4), new Filter(fs => fs(5).toDouble > 4.0),
@@ -169,7 +171,7 @@ object DataExamples {
 }
 
 // Data for results table,
-// noun url cum_total cum_polarity
+// noun url cum_total avg_cum_polarity(%)
 object NounPolarity {
 
   val nouns = HashSet("Medicare", "Medicaid", "Iraq", "marijuana", "Obama", "taxes", "immigration",
@@ -190,9 +192,11 @@ object NounPolarity {
           val count = fs(4).toInt
           Some(Seq(noun, fs(0), count, count*nounPolarity).map(_.toString))
         }}}), // noun url count count*polarity
-    SumLast(2), Sort(3, true), Sort(0),
-      Transform(2, _.toDouble.toInt.toString),
-      Transform(3, _.toDouble.toInt.toString)
+    SumLast(2), new Filter(fs => fs(2).toDouble > 4.0),
+      Transform.all(fs => Some(Seq(fs(0), fs(1), fs(2), (fs(3).toDouble / fs(2).toDouble).toString))),
+      Sort(3, true), Sort(0),
+      Transform(2, _.toDouble.toInt.toString)
+//      Transform(3, _.toDouble.toInt.toString)
 //      Transform(4, _.toDouble.toInt.toString),
 //      Transform(5, _.toDouble.toInt.toString)
     ),
