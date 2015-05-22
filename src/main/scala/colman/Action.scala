@@ -155,7 +155,7 @@ class SumLast(n: Int = 1) extends Aggregate {
   }
 
   override def output: Iterator[Seq[String]] = {
-    map.iterator.map(p => p._1 ++ Seq(p._2.toString))
+    map.iterator.map(p => p._1 ++ p._2.map(_.toString))
   }
 }
 
