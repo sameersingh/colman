@@ -107,8 +107,8 @@
         <configuration>
           <launchers>
               <launcher>
-                  <id>subjects</id>
-                  <mainClass>colman.Subjects</mainClass>
+                  <id>common</id>
+                  <mainClass>colman.Common</mainClass>
                   <jvmArgs>
                       <jvmArg>-Xmx48g</jvmArg>
                   </jvmArgs>
