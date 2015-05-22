@@ -15,6 +15,12 @@ object Func {
   }
 }
 
+trait Emit extends Action {
+  override def apply(data: Iterator[Seq[String]]): Iterator[Seq[String]] = data.flatMap(d => emit(d))
+
+  def emit(fs: Seq[String]): Seq[Seq[String]]
+}
+
 trait PerRow extends Action {
 
   override def apply(data: Iterator[Seq[String]]): Iterator[Seq[String]] = data.flatMap(d => apply(d).iterator)
