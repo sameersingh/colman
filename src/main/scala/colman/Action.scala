@@ -61,6 +61,10 @@ class Transform(key: Int, f: String => String) extends PerRow {
 
 object Transform {
   def apply(key: Int = 0, f: String => String) = new Transform(key, f)
+
+  def all(t: Seq[String] => Option[Seq[String]]) = new PerRow {
+    override def apply(fields: Seq[String]): Option[Seq[String]] = t(fields)
+  }
 }
 
 trait Aggregate extends Action {
@@ -140,14 +144,14 @@ object Uniq {
   def apply(count: Boolean = true) = new Uniq(count)
 }
 
-class SumLast extends Aggregate {
+class SumLast(n: Int = 1) extends Aggregate {
 
-  val map = new mutable.LinkedHashMap[Seq[String], Double]
+  val map = new mutable.LinkedHashMap[Seq[String], Seq[Double]]
 
   override def apply(fields: Seq[String]): Unit = {
-    val key = fields.dropRight(1)
-    val count = fields.last.toDouble
-    map(key) = map.getOrElse(key, 0.0) + count
+    val key = fields.dropRight(n)
+    val count = fields.takeRight(n).map(_.toDouble)
+    map(key) = map.getOrElse(key, Seq.fill(n)(0.0)).zip(count).map(sc => sc._1 + sc._2)
   }
 
   override def output: Iterator[Seq[String]] = {
@@ -156,5 +160,5 @@ class SumLast extends Aggregate {
 }
 
 object SumLast {
-  def apply() = new SumLast
+  def apply(n: Int = 1) = new SumLast(n)
 }
