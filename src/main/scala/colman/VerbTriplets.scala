@@ -2,21 +2,27 @@ package colman
 
 import java.io.File
 
+import scala.collection.immutable.HashSet
 import scala.collection.mutable
 
 /**
  * Created by sameer on 5/14/15.
  */
 object VerbTriplets {
-  val baseDir = "/home/sameer/Downloads/gilette/"
-  val inputFiles = (0 until 75).map(i => baseDir + "triplets-0517/part-r-%05d.gz".format(i))
-  val triplets = baseDir + "triplets-0517/triplets.gz"
-  val commonVerbs = baseDir + "triplets-0517/common-verbs.gz"
-  val commonSubjects = baseDir + "triplets-0517/common-subjs.gz"
-  val commonObjects = baseDir + "triplets-0517/common-objs.gz"
-  val urls = baseDir + "triplets-0517/urls.gz"
-  val urlVerbs = baseDir + "triplets-0517/verbs.gz"
-  val urlObjectVerbs = baseDir + "triplets-0517/objs.gz"
+  val baseDir = "/home/sameer/work/data/gilette/triplets-0521/"
+  val inputFiles = (0 until 75).map(i => baseDir + "part-r-%05d.gz".format(i))
+  val polarityFile = baseDir + "../verbs_output.csv"
+  // common
+  val triplets = baseDir + "triplets.gz"
+  val commonVerbs = baseDir + "common-verbs.gz"
+  val commonSubjects = baseDir + "common-subjs.gz"
+  val commonObjects = baseDir + "common-objs.gz"
+
+  val urls = baseDir + "urls.gz"
+  val urlObjectVerbs = baseDir + "objs.gz"
+  val urlSubjectVerbs = baseDir + "subjs.gz"
+
+  val nounPolarity = baseDir + "noun-polarity.gz"
 
   def run(action: Action, input: Seq[String], output: String) = {
     val as = Actions(action, new Writer(output, true))
@@ -69,6 +75,19 @@ object CommonObjects {
   }
 }
 
+object Common {
+  def main(args: Array[String]): Unit = {
+    println("lemma")
+    Lemmatize.main(Array())
+    println("verbs")
+    CommonVerbs.main(Array())
+    println("subjs")
+    CommonSubjects.main(Array())
+    println("objs")
+    CommonObjects.main(Array())
+  }
+}
+
 object Urls{
   def main(args: Array[String]): Unit = {
     VerbTriplets.run(Actions(Cut(0, 4),
@@ -82,54 +101,103 @@ object Urls{
   }
 }
 
-object Verbs {
-  def main(args: Array[String]): Unit = {
-    VerbTriplets.run(Actions(Cut(0, 2, 4),
-      SumLast(), Sort(2, true),
-      Transform(2, _.toDouble.toInt.toString)),
-      Seq(VerbTriplets.triplets),
-      VerbTriplets.urlVerbs)
-  }
-}
-
-// Data for motivation table, object verb left/right count
+// Data for motivation table
+// object verb lcount rcount lcount-rcount total
 object ObjectVerbs {
   def main(args: Array[String]): Unit = {
     VerbTriplets.run(Actions(
       new Filter(fs => UrlPolarity(fs(0)).isDefined),
       Transform(0, s => UrlPolarity(s).get),
-      Cut(3, 2, 0, 4),
-      SumLast(), new Filter(fs => fs(3).toDouble > 4.0),
-      Sort(3, true), Sort(0, false),
-      Transform(3, _.toDouble.toInt.toString)),
+      Cut(3, 2, 0, 4), // obj, verb, left/right, count
+      Transform.all(fs => {
+        val count = fs(3).toInt
+        val left = (fs(2) == "left")
+        assert(left || fs(2) == "right", fs.mkString("\t"))
+        val countl = if(left) count else 0
+        val countr = if(left) 0 else count
+        val diff = if(left) count else -count
+        val total = count
+        Some(Seq(fs(0), fs(1), countl.toString, countr.toString, diff.toString, total.toString))
+      }), // object verb lcount rcount lcount-rcount total
+      SumLast(4), new Filter(fs => fs(5).toDouble > 4.0),
+      Sort(5, true), Sort(0, false),
+      Transform(2, _.toDouble.toInt.toString),
+      Transform(3, _.toDouble.toInt.toString),
+      Transform(4, _.toDouble.toInt.toString),
+      Transform(5, _.toDouble.toInt.toString)),
       Seq(VerbTriplets.triplets),
       VerbTriplets.urlObjectVerbs)
   }
 }
 
-// Data for motivation table, subject verb left/right count
+// Data for motivation table
+// subject verb lcount rcount lcount-rcount total
 object SubjectVerbs {
   def main(args: Array[String]): Unit = {
     VerbTriplets.run(Actions(
       new Filter(fs => UrlPolarity(fs(0)).isDefined),
       Transform(0, s => UrlPolarity(s).get),
-      Cut(1, 2, 0, 4),
-      SumLast(), new Filter(fs => fs(3).toDouble > 4.0),
-      Sort(3, true), Sort(0, false),
-      Transform(3, _.toDouble.toInt.toString)),
+      Cut(1, 2, 0, 4), // subj verb left/right count
+      Transform.all(fs => {
+        val count = fs(3).toInt
+        val left = (fs(2) == "left")
+        assert(left || fs(2) == "right", fs.mkString("\t"))
+        val countl = if(left) count else 0
+        val countr = if(left) 0 else count
+        val diff = if(left) count else -count
+        val total = count
+        Some(Seq(fs(0), fs(1), countl.toString, countr.toString, diff.toString, total.toString))
+      }), // subj verb lcount rcount lcount-rcount total
+      SumLast(4), new Filter(fs => fs(5).toDouble > 4.0),
+      Sort(5, true), Sort(0, false),
+      Transform(2, _.toDouble.toInt.toString),
+      Transform(3, _.toDouble.toInt.toString),
+      Transform(4, _.toDouble.toInt.toString),
+      Transform(5, _.toDouble.toInt.toString)),
       Seq(VerbTriplets.triplets),
-      VerbTriplets.urlObjectVerbs)
+      VerbTriplets.urlSubjectVerbs)
   }
 }
 
-// todo score each url/noun with a polarity (and count)
-object NounPolarity {
+object DataExamples {
   def main(args: Array[String]): Unit = {
-    VerbTriplets.run(Actions(Cut(0, 2, 3, 4),
-      SumLast(), Sort(3, true),
-      Transform(3, _.toDouble.toInt.toString)),
+    println("objs")
+    ObjectVerbs.main(Array())
+    println("subjs")
+    SubjectVerbs.main(Array())
+  }
+}
+
+// Data for results table,
+// noun url cum_total cum_polarity
+object NounPolarity {
+
+  val nouns = HashSet("Medicare", "Medicaid", "Iraq", "marijuana", "Obama", "taxes", "immigration",
+    "abortion", "Israel", "Palestine", "marriage", "Parenthood", "welfare")
+
+  def main(args: Array[String]): Unit = {
+    VerbPolarity.read(VerbTriplets.polarityFile)
+
+    VerbTriplets.run(Actions( // url subj verb obj count
+    Transform.all(fs => {
+      if(!nouns(fs(1)) && !nouns(fs(3))) None
+      else {
+        val polarity = VerbPolarity(fs(2))
+        if(polarity.isEmpty) None
+        else {
+          val (noun, isSubj) = if(nouns(fs(1))) fs(1) -> true else fs(3) -> false
+          val nounPolarity = if(isSubj) polarity.get.spSubj else polarity.get.spObj
+          val count = fs(4).toInt
+          Some(Seq(noun, fs(0), count, count*nounPolarity).map(_.toString))
+        }}}), // noun url count count*polarity
+    SumLast(2), Sort(3, true), Sort(0),
+      Transform(2, _.toDouble.toInt.toString),
+      Transform(3, _.toDouble.toInt.toString)
+//      Transform(4, _.toDouble.toInt.toString),
+//      Transform(5, _.toDouble.toInt.toString)
+    ),
       Seq(VerbTriplets.triplets),
-      VerbTriplets.urlObjectVerbs)
+      VerbTriplets.nounPolarity)
   }
 }
 
@@ -151,6 +219,8 @@ object VerbPolarity {
       map(l(0)) = Polarity(str2int(l(1)), str2int(l(2)), str2int(l(3)))
     }
   }
+
+  def apply(verb: String) = map.get(verb)
 
 }
 

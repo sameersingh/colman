@@ -114,15 +114,15 @@
                   </jvmArgs>
               </launcher>
               <launcher>
-                  <id>obj-verbs</id>
-                  <mainClass>colman.ObjectVerbs</mainClass>
+                  <id>data-examples</id>
+                  <mainClass>colman.DataExamples</mainClass>
                   <jvmArgs>
                       <jvmArg>-Xmx48g</jvmArg>
                   </jvmArgs>
               </launcher>
               <launcher>
-                  <id>subj-verbs</id>
-                  <mainClass>colman.SubjectVerbs</mainClass>
+                  <id>noun-polarity</id>
+                  <mainClass>colman.NounPolarity</mainClass>
                   <jvmArgs>
                       <jvmArg>-Xmx48g</jvmArg>
                   </jvmArgs>
