@@ -127,6 +127,13 @@
                       <jvmArg>-Xmx48g</jvmArg>
                   </jvmArgs>
               </launcher>
+              <launcher>
+                  <id>noun-plots</id>
+                  <mainClass>colman.NounPlots</mainClass>
+                  <jvmArgs>
+                      <jvmArg>-Xmx48g</jvmArg>
+                  </jvmArgs>
+              </launcher>
           </launchers>
         </configuration>
       </plugin>
