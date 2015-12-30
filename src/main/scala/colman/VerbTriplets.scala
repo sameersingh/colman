@@ -11,7 +11,7 @@ import scala.collection.mutable
 object VerbTriplets {
   val baseDir = "/home/sameer/work/data/gilette/triplets-0521/"
   val inputFiles = (0 until 75).map(i => baseDir + "part-r-%05d.gz".format(i))
-  val polarityFile = baseDir + "../verbs_output.csv"
+  val polarityFile = baseDir + "../verbs_output-05292015.csv" //"../verbs_output.csv"
   // common
   val triplets = baseDir + "triplets.gz"
   val commonVerbs = baseDir + "common-verbs.gz"
@@ -217,6 +217,7 @@ object SubjectObjectPolarity {
     VerbPolarity.read(VerbTriplets.polarityFile)
 
     VerbTriplets.run(Actions(
+      new Filter(fs => VerbPolarity(fs(2)).isDefined),
       Transform.all(fs => {
         //if(!nouns(fs(1)) && !nouns(fs(3))) None
         //else {
@@ -229,7 +230,7 @@ object SubjectObjectPolarity {
         }}), // subj obj count count*polarity
       SumLast(2), new Filter(fs => fs(2).toDouble > 100.0),
       //Transform.all(fs => Some(Seq(fs(0), fs(1), fs(2), (fs(3).toDouble / fs(2).toDouble).toString))),
-      Sort(3, true), Sort(0),
+      //Sort(3, true), Sort(0),
       Transform(2, _.toDouble.toInt.toString)
     ),
       Seq(VerbTriplets.triplets),
@@ -245,17 +246,18 @@ object NounPlots {
 
     VerbTriplets.run(Actions(
       new Filter(fs => UrlPolarity(fs(0)).isDefined),
+      new Filter(fs => VerbPolarity(fs(2)).isDefined),
       Transform(0, s => UrlPolarity(s).get),
       Transform.all(fs => { // left/right subj verb obj count
         val count = fs(4).toDouble
         val left = (fs(0) == "left")
         assert(left || fs(0) == "right", fs.mkString("\t"))
-        val countl = if(left) count*Urls.scalingFactor else 0
+        val countl = if(left) count else 0
         val countr = if(left) 0 else count
         val diff = countl-countr
         val total = countl + countr
-        Some(Seq(fs(1), fs(2), fs(3), countl.toString, countr.toString, diff.toString, total.toString))
-      }), // subj verb obj lcount rcount lcount-rcount total
+        Some(Seq(fs(1), fs(2), fs(3), countl.toString, countr.toString))
+      }), // subj verb obj lcount rcount
       new Emit {
         override def emit(fs: Seq[String]): Seq[Seq[String]] = {
           val polarity = VerbPolarity(fs(1))
@@ -263,15 +265,13 @@ object NounPlots {
           else {
             val lcount = fs(3).toDouble
             val rcount = fs(4).toDouble
-            val diff = fs(5).toDouble
-            val total = fs(6).toDouble
             val subjPol = polarity.get.spSubj
-            val subj = Seq(fs(0), lcount, rcount, diff, total, lcount*subjPol, rcount*subjPol, diff*subjPol, total*subjPol).map(_.toString)
+            val subj = Seq(fs(0), lcount, rcount, lcount*subjPol, rcount*subjPol).map(_.toString)
             val objPol = polarity.get.spObj
-            val obj = Seq(fs(2), lcount, rcount, diff, total, lcount*objPol, rcount*objPol, diff*objPol, total*objPol).map(_.toString)
-            Seq(subj)
-          }}}, // noun lcount rcount lcount-rcount total lcount*pol rcount*pol (lcount-rcount)*pol total*pol
-      SumLast(8), new Filter(fs => fs(4).toDouble > 10.0)
+            val obj = Seq(fs(2), lcount, rcount, lcount*objPol, rcount*objPol).map(_.toString)
+            Seq(subj,obj)
+          }}}, // noun lcount rcount lcount*pol rcount*pol
+      SumLast(4), new Filter(fs => fs(1).toDouble+fs(2).toDouble > 10.0)
       //Sort(7, true), Sort(1, false),
       //Transform(2, _.toDouble.toInt.toString),
       //Transform(3, _.toDouble.toInt.toString),
