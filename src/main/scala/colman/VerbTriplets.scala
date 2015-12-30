@@ -9,11 +9,24 @@ import scala.collection.mutable
  * Created by sameer on 5/14/15.
  */
 object VerbTriplets {
-  val baseDir = "/home/sameer/work/data/gilette/triplets-0521/"
-  val inputFiles = (0 until 75).map(i => baseDir + "part-r-%05d.gz".format(i))
+  val baseDir = "/home/sameer/work/data/connframe/"
+
+  def dataDir(data: String) = data match {
+    case "nyt" => baseDir + "nyt/"
+    case "giga" => baseDir + "giga/"
+    case "stream" => baseDir + "streamcorpus/"
+  }
+
+  def inputFiles(data: String) = data match {
+    case "nyt" => Seq(dataDir(data) + "original.txt.gz")
+    case "giga" => (0 until 75).map(i => dataDir(data) + "GigaWordPhraseTriplets-output/part-r-%05d.gz".format(i))
+    case "stream" => (0 until 75).map(i => dataDir(data) + "phraseTriplets-output/part-r-%05d.gz".format(i))
+  }
+
   val polarityFile = baseDir + "../verbs_output-05292015.csv" //"../verbs_output.csv"
+
   // common
-  val triplets = baseDir + "triplets.gz"
+  def triplets(data: String) = dataDir(data) + "triplets.gz"
   val commonVerbs = baseDir + "common-verbs.gz"
   val commonSubjects = baseDir + "common-subjs.gz"
   val commonObjects = baseDir + "common-objs.gz"
@@ -34,6 +47,7 @@ object VerbTriplets {
 
 object Lemmatize {
   def main(args: Array[String]): Unit = {
+    val data = args.lift(0).getOrElse("nyt")
     def lemma(v: String) = {
       val split = v.split("\\|")
       val word = split.dropRight(1).mkString("|")
@@ -41,38 +55,42 @@ object Lemmatize {
       StanfordLemma.lemma(word, tag)
     }
     VerbTriplets.run(Actions(
-      Transform(1, v => lemma(v)),
-      Transform(2, v => lemma(v)),
-      Transform(3, v => lemma(v))), VerbTriplets.inputFiles, VerbTriplets.triplets)
+//      Transform(1, v => lemma(v)),
+      Transform(2, v => lemma(v))),
+//      Transform(3, v => lemma(v))),
+      VerbTriplets.inputFiles(data), VerbTriplets.triplets(data))
   }
 }
 
 object CommonVerbs {
   def main(args: Array[String]): Unit = {
+    val data = args.lift(0).getOrElse("nyt")
     VerbTriplets.run(Actions(Cut(2, 4),
       SumLast(), Sort(1, true),
       Transform(1, _.toDouble.toInt.toString)),
-      Seq(VerbTriplets.triplets),
+      Seq(VerbTriplets.triplets(data)),
       VerbTriplets.commonVerbs)
   }
 }
 
 object CommonSubjects {
   def main(args: Array[String]): Unit = {
+    val data = args.lift(0).getOrElse("nyt")
     VerbTriplets.run(Actions(Cut(1, 4),
       SumLast(), Sort(1, true),
       Transform(1, _.toDouble.toInt.toString)),
-      Seq(VerbTriplets.triplets),
+      Seq(VerbTriplets.triplets(data)),
       VerbTriplets.commonSubjects)
   }
 }
 
 object CommonObjects {
   def main(args: Array[String]): Unit = {
+    val data = args.lift(0).getOrElse("nyt")
     VerbTriplets.run(Actions(Cut(3, 4),
       SumLast(), Sort(1, true),
       Transform(1, _.toDouble.toInt.toString)),
-      Seq(VerbTriplets.triplets),
+      Seq(VerbTriplets.triplets(data)),
       VerbTriplets.commonObjects)
   }
 }
@@ -94,13 +112,14 @@ object Urls {
   val scalingFactor = 2239596.0/5030876.0
 
   def main(args: Array[String]): Unit = {
+    val data = args.lift(0).getOrElse("nyt")
     VerbTriplets.run(Actions(Cut(0, 4),
       new Filter(fs => UrlPolarity(fs(0)).isDefined),
       Transform(0, s => UrlPolarity(s).get),
       SumLast() //, Sort(1, true),
       //Transform(1, _.toDouble.toInt.toString)
     ),
-      Seq(VerbTriplets.triplets),
+      Seq(VerbTriplets.triplets(data)),
       VerbTriplets.urls)
   }
 }
@@ -109,6 +128,7 @@ object Urls {
 // object verb lcount rcount lcount-rcount total
 object ObjectVerbs {
   def main(args: Array[String]): Unit = {
+    val data = args.lift(0).getOrElse("nyt")
     VerbTriplets.run(Actions(
       new Filter(fs => UrlPolarity(fs(0)).isDefined),
       Transform(0, s => UrlPolarity(s).get),
@@ -129,7 +149,7 @@ object ObjectVerbs {
       Transform(3, _.toDouble.toInt.toString),
       Transform(4, _.toDouble.toInt.toString),
       Transform(5, _.toDouble.toInt.toString)),
-      Seq(VerbTriplets.triplets),
+      Seq(VerbTriplets.triplets(data)),
       VerbTriplets.urlObjectVerbs)
   }
 }
@@ -138,6 +158,7 @@ object ObjectVerbs {
 // subject verb lcount rcount lcount-rcount total
 object SubjectVerbs {
   def main(args: Array[String]): Unit = {
+    val data = args.lift(0).getOrElse("nyt")
     VerbTriplets.run(Actions(
       new Filter(fs => UrlPolarity(fs(0)).isDefined),
       Transform(0, s => UrlPolarity(s).get),
@@ -158,7 +179,7 @@ object SubjectVerbs {
       Transform(3, _.toDouble.toInt.toString),
       Transform(4, _.toDouble.toInt.toString),
       Transform(5, _.toDouble.toInt.toString)),
-      Seq(VerbTriplets.triplets),
+      Seq(VerbTriplets.triplets(data)),
       VerbTriplets.urlSubjectVerbs)
   }
 }
@@ -182,6 +203,7 @@ object NounPolarity {
     "abortion", "Israel", "Palestine", "marriage", "Parenthood", "welfare")
 
   def main(args: Array[String]): Unit = {
+    val data = args.lift(0).getOrElse("nyt")
     VerbPolarity.read(VerbTriplets.polarityFile)
 
     VerbTriplets.run(Actions( // url subj verb obj count
@@ -205,7 +227,7 @@ object NounPolarity {
 //      Transform(4, _.toDouble.toInt.toString),
 //      Transform(5, _.toDouble.toInt.toString)
     ),
-      Seq(VerbTriplets.triplets),
+      Seq(VerbTriplets.triplets(data)),
       VerbTriplets.nounPolarity)
   }
 }
@@ -214,6 +236,7 @@ object NounPolarity {
 // subj obj count polarity
 object SubjectObjectPolarity {
   def main(args: Array[String]): Unit = {
+    val data = args.lift(0).getOrElse("nyt")
     VerbPolarity.read(VerbTriplets.polarityFile)
 
     VerbTriplets.run(Actions(
@@ -233,7 +256,7 @@ object SubjectObjectPolarity {
       //Sort(3, true), Sort(0),
       Transform(2, _.toDouble.toInt.toString)
     ),
-      Seq(VerbTriplets.triplets),
+      Seq(VerbTriplets.triplets(data)),
       VerbTriplets.subjObjPolarity)
   }
 }
@@ -242,6 +265,7 @@ object SubjectObjectPolarity {
 // noun lcount lpolarity rcount rpolarity
 object NounPlots {
   def main(args: Array[String]): Unit = {
+    val data = args.lift(0).getOrElse("nyt")
     VerbPolarity.read(VerbTriplets.polarityFile)
 
     VerbTriplets.run(Actions(
@@ -278,7 +302,7 @@ object NounPlots {
       //Transform(4, _.toDouble.toInt.toString),
       //Transform(5, _.toDouble.toInt.toString)
       ),
-      Seq(VerbTriplets.triplets),
+      Seq(VerbTriplets.triplets(data)),
       VerbTriplets.nounPlots)
   }
 }
