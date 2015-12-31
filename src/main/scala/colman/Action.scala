@@ -28,6 +28,15 @@ trait PerRow extends Action {
   def apply(fields: Seq[String]): Option[Seq[String]]
 }
 
+object AssertLength {
+  def apply(len: Int) = new PerRow {
+    override def apply(fields: Seq[String]): Option[Seq[String]] = {
+      assert(fields.length == len, s"Length of ${fields.mkString(", ")} is ${fields.length} != $len" )
+      Some(fields)
+    }
+  }
+}
+
 class Cut(output: Seq[Int]) extends PerRow {
   override def apply(fields: Seq[String]): Option[Seq[String]] = Some(output.map(i => fields(i)))
 }
@@ -61,6 +70,11 @@ object ColMatch {
   def apply(key: Int = 0, pattern: String) = new ColMatch(key, pattern.r)
 }
 
+/**
+  * Transform a single column, leaving the rest unchanged
+  * @param key the column number to modify
+  * @param f the function to apply to the column members
+  */
 class Transform(key: Int, f: String => String) extends PerRow {
   override def apply(fields: Seq[String]): Option[Seq[String]] = Some(fields.slice(0, key) ++ Seq(f(fields(key))) ++ fields.slice(key + 1, fields.length))
 }
