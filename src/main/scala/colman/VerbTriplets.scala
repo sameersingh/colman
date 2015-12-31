@@ -23,7 +23,7 @@ object VerbTriplets {
     case "stream" => (0 until 75).map(i => dataDir(data) + "phraseTriplets-output/part-r-%05d.gz".format(i))
   }
 
-  val polarityFile = baseDir + "../verbs_output-05292015.csv" //"../verbs_output.csv"
+  val polarityFile = Seq("train", "dev", "test").map(t => baseDir + "lexicons/divided-20151125/"+t+"_frame_info.txt") //"../verbs_output.csv"
 
   // common
   def triplets(data: String) = dataDir(data) + "triplets.gz"
@@ -55,7 +55,8 @@ object Lemmatize {
       StanfordLemma.lemma(word, tag)
     }
     VerbTriplets.run(Actions(
-//      Transform(1, v => lemma(v)),
+      new Filter(_.size == 4),
+//      Transform(1, v => lemma(v))),
       Transform(2, v => lemma(v))),
 //      Transform(3, v => lemma(v))),
       VerbTriplets.inputFiles(data), VerbTriplets.triplets(data))
@@ -312,22 +313,37 @@ object VerbPolarity {
 
   val map = new mutable.HashMap[String, Polarity]
 
-  def read(fname: String): Unit = {
+  def read(fnames: Seq[String]): Unit = {
     def str2int(s: String) = s match {
       case "N" => 0
       case "+" => 1
       case "-" => -1
     }
+    def dbl2int(d: Double) =
+      if (d < -0.5) -1
+      else if (d < 0.5) 0
+      else 1
     map.clear()
-    for(l <- FileUtil.read(fname, false, ",")) {
-      assert(l.length == 4)
-      assert(!map.contains(l(0)))
-      map(l(0)) = Polarity(str2int(l(1)), str2int(l(2)), str2int(l(3)))
+//    for(l <- FileUtil.read(fname, false, ",")) {
+//      assert(l.length == 4)
+//      assert(!map.contains(l(0)))
+//      map(l(0)) = Polarity(str2int(l(1)), str2int(l(2)), str2int(l(3)))
+//    }
+    for(fname <- fnames;
+        l <- FileUtil.read(fname, false).drop(1)) {
+      assert(l.length > 4)
+      if(map.contains(l(0)))
+        println(s"map already contains ${l(0)} with polarity ${map(l(0))}")
+      map(l(0)) = Polarity(dbl2int(l(1).toDouble), dbl2int(l(2).toDouble), dbl2int(l(3).toDouble))
     }
   }
 
   def apply(verb: String) = map.get(verb)
 
+  def main(args: Array[String]): Unit = {
+    this.read(VerbTriplets.polarityFile)
+    println(s"${map.size} polarities read.")
+  }
 }
 
 object UrlPolarity {
